@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import Combine
 
 /// Manages session persistence on disk
 @MainActor
-final class SessionManager {
+final class SessionManager: ObservableObject {
     
     static let shared = SessionManager()
     
@@ -19,6 +20,10 @@ final class SessionManager {
         return documentsPath.appendingPathComponent("Sessions", isDirectory: true)
     }
     
+    // Error tracking
+    @Published var lastSaveError: String? = nil
+    @Published var lastDeleteError: String? = nil
+    
     private init() {
         ensureSessionsDirectoryExists()
     }
@@ -27,35 +32,88 @@ final class SessionManager {
     
     private func ensureSessionsDirectoryExists() {
         if !fileManager.fileExists(atPath: sessionsDirectory.path) {
-            try? fileManager.createDirectory(at: sessionsDirectory, withIntermediateDirectories: true)
-            print("📁 SessionManager: Created Sessions directory")
+            do {
+                try fileManager.createDirectory(at: sessionsDirectory, withIntermediateDirectories: true)
+                print("📁 SessionManager: Created Sessions directory")
+            } catch {
+                let errorMsg = "Failed to create Sessions directory: \(error.localizedDescription)"
+                lastSaveError = errorMsg
+                print("❌ SessionManager: \(errorMsg)")
+            }
         }
     }
     
     // MARK: - Save Session
     
-    /// Save session data to disk
-    func saveSession(sessionId: UUID, records: [TelemetryRecord], summary: FlightSummary?) {
+    /// Save session data to disk (including events)
+    func saveSession(sessionId: UUID, records: [TelemetryRecord], summary: FlightSummary?, events: [FlightEvent] = []) {
+        lastSaveError = nil
         let sessionDir = sessionsDirectory.appendingPathComponent(sessionId.uuidString, isDirectory: true)
         
         // Create session directory
-        if !fileManager.fileExists(atPath: sessionDir.path) {
-            try? fileManager.createDirectory(at: sessionDir, withIntermediateDirectories: true)
+        do {
+            if !fileManager.fileExists(atPath: sessionDir.path) {
+                try fileManager.createDirectory(at: sessionDir, withIntermediateDirectories: true)
+            }
+        } catch {
+            let errorMsg = "Failed to create session directory: \(error.localizedDescription)"
+            lastSaveError = errorMsg
+            print("❌ SessionManager: \(errorMsg)")
+            return
         }
         
         // Save records
         let recordsFile = sessionDir.appendingPathComponent("\(sessionId.uuidString).json")
         if let recordsData = encodeRecords(records) {
-            try? recordsData.write(to: recordsFile)
-            print("💾 SessionManager: Saved \(records.count) records to \(recordsFile.lastPathComponent)")
+            do {
+                try recordsData.write(to: recordsFile, options: .atomic)
+                print("💾 SessionManager: Saved \(records.count) records to \(recordsFile.lastPathComponent)")
+            } catch {
+                let errorMsg = "Failed to save records: \(error.localizedDescription)"
+                lastSaveError = errorMsg
+                print("❌ SessionManager: \(errorMsg)")
+            }
+        } else {
+            let errorMsg = "Failed to encode records"
+            lastSaveError = errorMsg
+            print("❌ SessionManager: \(errorMsg)")
         }
         
         // Save summary
         if let summary = summary {
             let summaryFile = sessionDir.appendingPathComponent("\(sessionId.uuidString).summary.json")
             if let summaryData = encodeSummary(summary) {
-                try? summaryData.write(to: summaryFile)
-                print("💾 SessionManager: Saved summary to \(summaryFile.lastPathComponent)")
+                do {
+                    try summaryData.write(to: summaryFile, options: .atomic)
+                    print("💾 SessionManager: Saved summary to \(summaryFile.lastPathComponent)")
+                } catch {
+                    let errorMsg = "Failed to save summary: \(error.localizedDescription)"
+                    lastSaveError = errorMsg
+                    print("❌ SessionManager: \(errorMsg)")
+                }
+            } else {
+                let errorMsg = "Failed to encode summary"
+                lastSaveError = errorMsg
+                print("❌ SessionManager: \(errorMsg)")
+            }
+        }
+        
+        // Save events (NEW: Point 1)
+        if !events.isEmpty {
+            let eventsFile = sessionDir.appendingPathComponent("\(sessionId.uuidString).events.json")
+            if let eventsData = encodeEvents(events) {
+                do {
+                    try eventsData.write(to: eventsFile, options: .atomic)
+                    print("💾 SessionManager: Saved \(events.count) events to \(eventsFile.lastPathComponent)")
+                } catch {
+                    let errorMsg = "Failed to save events: \(error.localizedDescription)"
+                    lastSaveError = errorMsg
+                    print("❌ SessionManager: \(errorMsg)")
+                }
+            } else {
+                let errorMsg = "Failed to encode events"
+                lastSaveError = errorMsg
+                print("❌ SessionManager: \(errorMsg)")
             }
         }
     }
@@ -105,6 +163,19 @@ final class SessionManager {
         return decodeSummary(data)
     }
     
+    /// Load events for a session (NEW: Point 1)
+    func loadEvents(for sessionId: UUID) -> [FlightEvent]? {
+        let eventsFile = sessionsDirectory
+            .appendingPathComponent(sessionId.uuidString, isDirectory: true)
+            .appendingPathComponent("\(sessionId.uuidString).events.json")
+        
+        guard let data = try? Data(contentsOf: eventsFile) else {
+            return nil
+        }
+        
+        return decodeEvents(data)
+    }
+    
     /// Get creation date for a session
     func creationDate(for sessionId: UUID) -> Date? {
         let sessionDir = sessionsDirectory.appendingPathComponent(sessionId.uuidString, isDirectory: true)
@@ -113,6 +184,34 @@ final class SessionManager {
             return nil
         }
         return creationDate
+    }
+    
+    // MARK: - Delete Session (NEW: Point 2)
+    
+    /// Delete a session and all its data (records, summary, events)
+    func deleteSession(_ sessionId: UUID) -> Bool {
+        lastDeleteError = nil
+        let sessionDir = sessionsDirectory.appendingPathComponent(sessionId.uuidString, isDirectory: true)
+        
+        guard fileManager.fileExists(atPath: sessionDir.path) else {
+            lastDeleteError = "Session directory does not exist"
+            return false
+        }
+        
+        do {
+            try fileManager.removeItem(at: sessionDir)
+            print("🗑️ SessionManager: Deleted session \(sessionId.uuidString.prefix(8))")
+            
+            // Also clear events from EventManager (NEW: Point 5)
+            EventManager.shared.clearSession(sessionId)
+            
+            return true
+        } catch {
+            let errorMsg = "Failed to delete session: \(error.localizedDescription)"
+            lastDeleteError = errorMsg
+            print("❌ SessionManager: \(errorMsg)")
+            return false
+        }
     }
     
     // MARK: - Export
@@ -218,5 +317,20 @@ final class SessionManager {
             endTime: codable.endTime,
             records: records
         )
+    }
+    
+    // MARK: - Events Encoding/Decoding (NEW: Point 1)
+    
+    private func encodeEvents(_ events: [FlightEvent]) -> Data? {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .prettyPrinted
+        return try? encoder.encode(events)
+    }
+    
+    private func decodeEvents(_ data: Data) -> [FlightEvent]? {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try? decoder.decode([FlightEvent].self, from: data)
     }
 }

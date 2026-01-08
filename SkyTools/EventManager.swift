@@ -69,9 +69,23 @@ final class EventManager: ObservableObject {
     }
     
     func loadEvents() {
+        // Load from UserDefaults (legacy)
         if let data = UserDefaults.standard.data(forKey: "FlightEvents"),
            let decoded = try? JSONDecoder().decode([FlightEvent].self, from: data) {
             events = decoded
+        }
+    }
+    
+    /// Load events for a session from disk (NEW: Point 1)
+    func loadEventsForSession(_ sessionId: UUID) {
+        if let sessionEvents = SessionManager.shared.loadEvents(for: sessionId) {
+            // Merge with existing events (avoid duplicates)
+            for event in sessionEvents {
+                if !events.contains(where: { $0.id == event.id }) {
+                    events.append(event)
+                }
+            }
+            saveEvents() // Save merged events
         }
     }
 }
