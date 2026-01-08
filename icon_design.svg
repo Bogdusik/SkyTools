@@ -1,0 +1,102 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#001A33;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#003366;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="droneGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0088FF;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="180" fill="url(#bgGradient)"/>
+  
+  <!-- Telemetry data line (curved path) - TOP -->
+  <path d="M 200 400 Q 300 300, 400 350 T 600 400 T 800 350" 
+        stroke="#00AAFF" 
+        stroke-width="12" 
+        fill="none" 
+        stroke-linecap="round"
+        opacity="0.6"/>
+  
+  <!-- Data points on the top line -->
+  <circle cx="300" cy="320" r="8" fill="#00AAFF" opacity="0.8"/>
+  <circle cx="500" cy="380" r="8" fill="#00AAFF" opacity="0.8"/>
+  <circle cx="700" cy="360" r="8" fill="#00AAFF" opacity="0.8"/>
+  
+  <!-- Telemetry data line (curved path) - BOTTOM (symmetrical) -->
+  <path d="M 200 624 Q 300 724, 400 674 T 600 624 T 800 674" 
+        stroke="#00AAFF" 
+        stroke-width="12" 
+        fill="none" 
+        stroke-linecap="round"
+        opacity="0.6"/>
+  
+  <!-- Data points on the bottom line -->
+  <circle cx="300" cy="704" r="8" fill="#00AAFF" opacity="0.8"/>
+  <circle cx="500" cy="644" r="8" fill="#00AAFF" opacity="0.8"/>
+  <circle cx="700" cy="664" r="8" fill="#00AAFF" opacity="0.8"/>
+  
+  <!-- Drone body (central rectangle) - BIGGER -->
+  <rect x="362" y="362" width="300" height="300" rx="30" 
+        fill="url(#droneGradient)" 
+        filter="url(#shadow)"/>
+  
+  <!-- Drone propellers (4 circles) - BIGGER -->
+  <!-- Top Left -->
+  <circle cx="312" cy="312" r="65" 
+          fill="url(#droneGradient)" 
+          opacity="0.9" 
+          filter="url(#shadow)"/>
+  <circle cx="312" cy="312" r="45" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="4" 
+          opacity="0.6"/>
+  
+  <!-- Top Right -->
+  <circle cx="712" cy="312" r="65" 
+          fill="url(#droneGradient)" 
+          opacity="0.9" 
+          filter="url(#shadow)"/>
+  <circle cx="712" cy="312" r="45" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="4" 
+          opacity="0.6"/>
+  
+  <!-- Bottom Left -->
+  <circle cx="312" cy="712" r="65" 
+          fill="url(#droneGradient)" 
+          opacity="0.9" 
+          filter="url(#shadow)"/>
+  <circle cx="312" cy="712" r="45" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="4" 
+          opacity="0.6"/>
+  
+  <!-- Bottom Right -->
+  <circle cx="712" cy="712" r="65" 
+          fill="url(#droneGradient)" 
+          opacity="0.9" 
+          filter="url(#shadow)"/>
+  <circle cx="712" cy="712" r="45" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="4" 
+          opacity="0.6"/>
+  
+  <!-- Center detail (camera/sensor) - BIGGER -->
+  <circle cx="512" cy="512" r="55" 
+          fill="#001A33" 
+          opacity="0.8"/>
+  <circle cx="512" cy="512" r="35" 
+          fill="#00AAFF" 
+          opacity="0.5"/>
+</svg>
