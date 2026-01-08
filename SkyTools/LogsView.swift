@@ -222,6 +222,8 @@ struct SessionsListView: View {
     @State private var selectedSessionRecords: [TelemetryRecord] = []
     @State private var selectedSessionSummary: FlightSummary?
     @State private var searchText: String = ""
+    @State private var sessionToDelete: UUID? = nil
+    @State private var showingDeleteAlert = false
     
     private var filteredSessions: [UUID] {
         guard !searchText.isEmpty else {
@@ -305,11 +307,29 @@ struct SessionsListView: View {
                                 onExport: {
                                     exportSessionId = sessionId
                                     showingExportSheet = true
+                                },
+                                onDelete: {
+                                    sessionToDelete = sessionId
+                                    showingDeleteAlert = true
                                 }
                             )
                         }
                     }
                     .listStyle(.plain)
+                    .alert("Delete Session", isPresented: $showingDeleteAlert) {
+                        Button("Cancel", role: .cancel) {
+                            sessionToDelete = nil
+                        }
+                        Button("Delete", role: .destructive) {
+                            if let sessionId = sessionToDelete {
+                                deleteSession(sessionId)
+                            }
+                        }
+                    } message: {
+                        if let sessionId = sessionToDelete {
+                            Text("Are you sure you want to delete session \(sessionId.uuidString.prefix(8))? This action cannot be undone.")
+                        }
+                    }
                 }
             }
             .sheet(isPresented: Binding(
@@ -342,6 +362,20 @@ struct SessionsListView: View {
             selectedSessionRecords = records
             selectedSessionSummary = summary
             selectedSessionId = sessionId
+            
+            // Load events for this session from disk (NEW: Point 1)
+            EventManager.shared.loadEventsForSession(sessionId)
+        }
+    }
+    
+    private func deleteSession(_ sessionId: UUID) {
+        if SessionManager.shared.deleteSession(sessionId) {
+            // Remove from list
+            savedSessions.removeAll { $0 == sessionId }
+            // Clear selection if deleted
+            if selectedSessionId == sessionId {
+                selectedSessionId = nil
+            }
         }
     }
 }
@@ -352,6 +386,7 @@ struct SessionRow: View {
     let sessionId: UUID
     let onTap: () -> Void
     let onExport: () -> Void
+    let onDelete: () -> Void
     
     @State private var summary: FlightSummary?
     @State private var creationDate: Date?
@@ -370,11 +405,18 @@ struct SessionRow: View {
                     Text("Session \(sessionId.uuidString.prefix(8))")
                         .font(.headline)
                     Spacer()
-                    Button(action: onExport) {
-                        Image(systemName: "square.and.arrow.up")
-                            .foregroundColor(.blue)
+                    HStack(spacing: 12) {
+                        Button(action: onExport) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(.blue)
+                        }
+                        .buttonStyle(.plain)
+                        Button(action: onDelete) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 
                 if let date = creationDate {

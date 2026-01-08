@@ -47,14 +47,18 @@ final class TelemetryLogger: ObservableObject {
             let sessionRecords = recordsForSession(sessionId)
             let summary = generateSummary(for: sessionId)
             
-            // Save to disk
+            // Get events for this session (NEW: Point 1)
+            let events = EventManager.shared.eventsForSession(sessionId)
+            
+            // Save to disk (including events)
             SessionManager.shared.saveSession(
                 sessionId: sessionId,
                 records: sessionRecords,
-                summary: summary
+                summary: summary,
+                events: events
             )
             
-            print("📊 TelemetryLogger: Ended session \(sessionId.uuidString.prefix(8)) with \(sessionRecords.count) records")
+            print("📊 TelemetryLogger: Ended session \(sessionId.uuidString.prefix(8)) with \(sessionRecords.count) records and \(events.count) events")
         }
         currentSessionId = nil
         sessionStartTime = nil

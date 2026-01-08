@@ -20,14 +20,28 @@ final class ExportManager {
     // MARK: - CSV Export
     
     func exportToCSV(records: [TelemetryRecord]) -> Data? {
-        guard !records.isEmpty else { return nil }
+        // Validation (NEW: Point 4)
+        guard !records.isEmpty else {
+            print("⚠️ ExportManager: Cannot export CSV - no records provided")
+            return nil
+        }
+        
+        // Validate that at least some records have valid data
+        let validRecords = records.filter { record in
+            record.latitude != nil || record.longitude != nil || record.battery != nil
+        }
+        
+        guard !validRecords.isEmpty else {
+            print("⚠️ ExportManager: Cannot export CSV - no valid records found")
+            return nil
+        }
         
         var csv = "Timestamp,Battery (%),Satellites,Altitude (m),Speed (m/s),Latitude,Longitude,Heading (°),GPS Signal,RC Signal (%),Home Lat,Home Lon\n"
         
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
-        for record in records.sorted(by: { $0.timestamp < $1.timestamp }) {
+        for record in validRecords.sorted(by: { $0.timestamp < $1.timestamp }) {
             let timestamp = dateFormatter.string(from: record.timestamp)
             let battery = record.battery.map { "\($0)" } ?? ""
             let satellites = record.satellites.map { "\($0)" } ?? ""
@@ -50,7 +64,21 @@ final class ExportManager {
     // MARK: - GPX Export
     
     func exportToGPX(records: [TelemetryRecord], sessionId: UUID) -> Data? {
-        guard !records.isEmpty else { return nil }
+        // Validation (NEW: Point 4)
+        guard !records.isEmpty else {
+            print("⚠️ ExportManager: Cannot export GPX - no records provided")
+            return nil
+        }
+        
+        // GPX requires at least one record with valid coordinates
+        let recordsWithCoordinates = records.filter { record in
+            record.latitude != nil && record.longitude != nil
+        }
+        
+        guard !recordsWithCoordinates.isEmpty else {
+            print("⚠️ ExportManager: Cannot export GPX - no records with valid coordinates")
+            return nil
+        }
         
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -59,7 +87,7 @@ final class ExportManager {
         gpx += "<gpx version=\"1.1\" creator=\"SkyTools\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
         gpx += "  <metadata>\n"
         gpx += "    <name>Flight Session \(sessionId.uuidString.prefix(8))</name>\n"
-        if let firstRecord = records.first {
+        if let firstRecord = recordsWithCoordinates.first {
             gpx += "    <time>\(dateFormatter.string(from: firstRecord.timestamp))</time>\n"
         }
         gpx += "  </metadata>\n"
@@ -67,7 +95,7 @@ final class ExportManager {
         gpx += "    <name>Flight Track</name>\n"
         gpx += "    <trkseg>\n"
         
-        for record in records.sorted(by: { $0.timestamp < $1.timestamp }) {
+        for record in recordsWithCoordinates.sorted(by: { $0.timestamp < $1.timestamp }) {
             guard let lat = record.latitude, let lon = record.longitude else { continue }
             
             gpx += "      <trkpt lat=\"\(lat)\" lon=\"\(lon)\">\n"
@@ -99,7 +127,7 @@ final class ExportManager {
         gpx += "  </trk>\n"
         
         // Add waypoints for home point
-        if let firstRecord = records.first,
+        if let firstRecord = recordsWithCoordinates.first,
            let homeLat = firstRecord.homeLatitude,
            let homeLon = firstRecord.homeLongitude {
             gpx += "  <wpt lat=\"\(homeLat)\" lon=\"\(homeLon)\">\n"
