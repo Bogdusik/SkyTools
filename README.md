@@ -48,7 +48,7 @@
 
 ```
 SkyTools/
-├── SkyTools/
+├── SkyTools/                      # Main application code
 │   ├── SkyToolsApp.swift          # App entry point + DJI SDK registration
 │   ├── ContentView.swift          # Main TabView (4 tabs)
 │   ├── DashboardView.swift        # Live telemetry + KPI cards
@@ -66,7 +66,16 @@ SkyTools/
 │   ├── EventManager.swift         # Event markers management
 │   ├── AppSettings.swift          # Settings singleton
 │   └── MockDroneService.swift     # Mock drone for testing
-└── Pods/                          # CocoaPods dependencies
+├── docs/                          # Documentation
+│   ├── DJI_CONNECTION.md          # DJI connection guide
+│   ├── LOCALIZATION.md            # Localization settings
+│   ├── PRIVACY.md                 # Privacy policy
+│   └── PROJECT_REPORT.md          # Project report
+├── screenshots/                   # App screenshots
+├── Pods/                          # CocoaPods dependencies
+├── README.md                      # Main documentation
+├── LICENSE                        # MIT License
+└── Podfile                        # CocoaPods configuration
 ```
 
 ### Architecture Pattern
@@ -233,7 +242,7 @@ let USE_MOCK_DRONE = true  // In SkyToolsApp.swift
 - ✅ **No Cloud Sync** - No automatic data transmission
 - ✅ **User-Controlled Export** - You decide when to share data
 
-See [PRIVACY.md](PRIVACY.md) for full privacy policy.
+See [PRIVACY.md](docs/PRIVACY.md) for full privacy policy.
 
 ---
 
