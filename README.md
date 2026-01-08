@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="SkyTools/Assets.xcassets/AppIcon.appiconset/AppIcon.png" alt="SkyTools App Icon" width="120" height="120" style="border-radius: 25px;">
+
 **A professional iOS companion app for DJI drones**
 
 *Telemetry logging, flight analytics, and pilot utilities*
@@ -314,7 +316,29 @@ Flight route for Google Earth / QGIS:
 
 ## 📸 Screenshots
 
-*Screenshots coming soon*
+<div align="center">
+
+### Dashboard View
+<img src="screenshots/dashboard.png" alt="Dashboard" width="300">
+*Real-time telemetry, KPI cards, and flight summary*
+
+### Flight Map
+<img src="screenshots/map.png" alt="Flight Map" width="300">
+*Interactive map with flight track, markers, and event points*
+
+### Flight Logs
+<img src="screenshots/logs.png" alt="Logs" width="300">
+*Session history and export options (JSON, CSV, GPX)*
+
+### System Status
+<img src="screenshots/system.png" alt="System" width="300">
+*DJI SDK connection status and settings*
+
+### Settings
+<img src="screenshots/settings.png" alt="Settings" width="300">
+*Customizable logging frequency, units, and session management*
+
+</div>
 
 ---
 
@@ -349,7 +373,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Bohdan Bozhenko**
 
 - Portfolio: [GitHub](https://github.com/Bogdusik)
-- Email: [your.email@example.com]
+- Email: [bogdyn6@gmail.com](mailto:bogdyn6@gmail.com)
 
 ---
 

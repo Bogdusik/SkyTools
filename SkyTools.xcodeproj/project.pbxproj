@@ -343,6 +343,10 @@
 				DEVELOPMENT_TEAM = RC37N9YRDC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = en;
+				INFOPLIST_KEY_CFBundleLocalizations = (
+					en,
+				);
 				INFOPLIST_KEY_DJISDKAppKey = b242022a3d474dd6a0733baa;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Required for DJI drone connection and telemetry";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Required for DJI drone connection and telemetry";
@@ -381,6 +385,10 @@
 				DEVELOPMENT_TEAM = RC37N9YRDC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDevelopmentRegion = en;
+				INFOPLIST_KEY_CFBundleLocalizations = (
+					en,
+				);
 				INFOPLIST_KEY_DJISDKAppKey = b242022a3d474dd6a0733baa;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Required for DJI drone connection and telemetry";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Required for DJI drone connection and telemetry";
