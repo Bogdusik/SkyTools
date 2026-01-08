@@ -316,28 +316,34 @@ Flight route for Google Earth / QGIS:
 
 ## 📸 Screenshots
 
-<div align="center">
-
 ### Dashboard View
-<img src="screenshots/dashboard.png" alt="Dashboard" width="300">
-*Real-time telemetry, KPI cards, and flight summary*
+<div align="center">
+  <img src="screenshots/dashboard.png" alt="Dashboard" width="300">
+  <p><em>Real-time telemetry, KPI cards, and flight summary</em></p>
+</div>
 
 ### Flight Map
-<img src="screenshots/map.png" alt="Flight Map" width="300">
-*Interactive map with flight track, markers, and event points*
+<div align="center">
+  <img src="screenshots/map.png" alt="Flight Map" width="300">
+  <p><em>Interactive map with flight track, markers, and event points</em></p>
+</div>
 
 ### Flight Logs
-<img src="screenshots/logs.png" alt="Logs" width="300">
-*Session history and export options (JSON, CSV, GPX)*
+<div align="center">
+  <img src="screenshots/logs.png" alt="Logs" width="300">
+  <p><em>Session history and export options (JSON, CSV, GPX)</em></p>
+</div>
 
 ### System Status
-<img src="screenshots/system.png" alt="System" width="300">
-*DJI SDK connection status and settings*
+<div align="center">
+  <img src="screenshots/system.png" alt="System" width="300">
+  <p><em>DJI SDK connection status and settings</em></p>
+</div>
 
 ### Settings
-<img src="screenshots/settings.png" alt="Settings" width="300">
-*Customizable logging frequency, units, and session management*
-
+<div align="center">
+  <img src="screenshots/settings.png" alt="Settings" width="300">
+  <p><em>Customizable logging frequency, units, and session management</em></p>
 </div>
 
 ---
