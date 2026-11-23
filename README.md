@@ -1,413 +1,120 @@
-# SkyTools
-
 <div align="center">
 
-<img src="SkyTools/Assets.xcassets/AppIcon.appiconset/AppIcon.png" alt="SkyTools App Icon" width="120" height="120" style="border-radius: 25px;">
+<img src="docs/media/tour.gif" alt="SkyTools running with the mock drone: the dashboard with flight metrics, the flight map with the track, the live telemetry log, saved sessions and the system tab" width="300">
 
-**A professional iOS companion app for DJI drones**
+# SkyTools
 
-*Telemetry logging, flight analytics, and pilot utilities*
+**An iOS companion app for DJI drones. It logs telemetry during a flight, draws the track on a map, and exports the session as JSON, CSV or GPX.**
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
-[![iOS](https://img.shields.io/badge/iOS-15.0+-blue.svg)](https://developer.apple.com/ios/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2EA44F)](LICENSE)
+![Swift](https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white)
+![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
+![iOS](https://img.shields.io/badge/iOS-16%2B_code_·_26.2_project-000000?logo=apple&logoColor=white)
+![DJI](https://img.shields.io/badge/DJI-Mobile_SDK_4.16-000000)
+
+[Features](#features) · [How it works](#how-it-works) · [Run it](#run-it) · [Real drone](#connecting-a-real-drone) · [Limits](#limits)
 
 </div>
 
----
+SkyTools is not a flight app like DJI Fly. It does not control the drone. It sits next to it, records what the aircraft reports, and gives you the flight back afterwards.
 
-## 📱 Overview
+## Features
 
-**SkyTools** is a production-ready iOS application designed as a companion tool for DJI Mini/Mavic series drones. Unlike DJI Fly, SkyTools focuses on **telemetry logging**, **flight analytics**, and **post-flight analysis** rather than FPV control.
+- **Live dashboard:** battery, satellites, GPS signal, altitude, speed and heading, plus flight metrics (max altitude, max speed, distance) for the current session.
+- **Flight map:** the track, start and home markers on MapKit, and event markers for interesting shots, problems and wind.
+- **Sessions:** a session starts when the drone connects and is saved to disk when it ends. Browse, search and delete them in the Logs tab.
+- **Export:** each saved session as JSON, CSV or GPX through the iOS share sheet.
+- **Settings:** logging rate (1, 2 or 5 Hz), speed in m/s or km/h, altitude in m or ft, automatic session start and end.
+- **Mock drone:** a built-in simulated flight, so every screen works without hardware.
+- **Private by design:** the app reads the drone's position from the SDK and never asks for the phone's location.
 
-### Key Features
+<div align="center">
+<img src="docs/media/metrics.png" alt="Dashboard scrolled to flight metrics: max altitude 50 m, max speed 10.9 m/s, distance and battery drop" width="19%">
+<img src="docs/media/map.png" alt="Flight map with the blue flight track and the mark event button" width="19%">
+<img src="docs/media/logs.png" alt="Flight logs: the current session's telemetry entries with battery, altitude, speed and satellites" width="19%">
+<img src="docs/media/sessions.png" alt="Saved sessions list with duration, max altitude and distance" width="19%">
+<img src="docs/media/settings.png" alt="Settings: logging frequency, units, automatic sessions and event markers" width="19%">
+</div>
 
-- ✅ **Real-time Telemetry Logging** - Battery, GPS, altitude, speed, heading, RC signal
-- ✅ **Flight Session Management** - Automatic session tracking with persistent storage
-- ✅ **Interactive Flight Map** - Visualize flight paths with MapKit (start/finish/home markers)
-- ✅ **Event Markers** - Mark interesting shots, problems, wind conditions during flight
-- ✅ **Flight Analytics** - KPI cards (max altitude, max speed, distance, battery drop)
-- ✅ **Multi-format Export** - JSON, CSV, GPX export for analysis
-- ✅ **Mock Drone Mode** - Test and develop without a physical drone
-- ✅ **Privacy-First** - No user location tracking, all data stored locally
+> **About these screenshots:** they are the real app running in the iOS Simulator with the mock drone, which flies a made-up route over central Glasgow. The DJI SDK cannot run in the simulator, so for the recording only, a stub with the same API replaced it. The app's own code is unchanged, and the mock mode never calls the SDK.
 
----
+## How it works
 
-## 🏗️ Architecture
+```mermaid
+flowchart LR
+  D[DJI drone<br/>via Mobile SDK] --> S
+  M[Mock drone<br/>simulated flight] --> S
+  S[DroneStore<br/>current state] -->|1 / 2 / 5 Hz| L[TelemetryLogger<br/>session records]
+  S --> UI[SwiftUI views<br/>Dashboard · Map · Logs · System]
+  L --> UI
+  L -->|session ends| P[SessionManager<br/>Documents/Sessions]
+  P --> E[ExportManager<br/>JSON · CSV · GPX]
+```
 
-### Tech Stack
+`DroneStore` is the single source of truth: SDK delegate callbacks and the mock both write into it, and a timer samples it at the chosen rate so the log has an even cadence. The live log shows the last 1,000 records, while the session itself keeps every record in memory until it ends. A finished session is written to `Documents/Sessions/` as a JSON file plus a small summary file.
 
-- **Language:** Swift 5.9+
-- **UI Framework:** SwiftUI
-- **SDK:** DJI Mobile SDK iOS
-- **Maps:** MapKit / CoreLocation
-- **State Management:** Combine + ObservableObject
-- **Persistence:** FileManager + UserDefaults
+## Exports
 
-### Project Structure
+| Format | Contents |
+|---|---|
+| JSON | The full session: every telemetry record, the summary and event markers |
+| CSV | One row per record: timestamp, battery, satellites, altitude, speed, latitude, longitude, heading, GPS and RC signal, home point |
+| GPX 1.1 | The track as `trkpt` points with elevation and time, so it opens in Google Earth or QGIS |
+
+## Run it
+
+You need Xcode 26 and CocoaPods.
+
+```bash
+git clone https://github.com/Bogdusik/SkyTools.git
+cd SkyTools
+pod install
+open SkyTools.xcworkspace
+```
+
+Open the **workspace**, not the project. The Xcode project targets iOS 26.2. The code uses `NavigationStack`, so it builds for iOS 16 and later if you lower the deployment target.
+
+To try the app without a drone, set `USE_MOCK_DRONE = true` in [SkyToolsApp.swift](SkyTools/SkyToolsApp.swift). The Dashboard then shows mock controls and starts a simulated flight.
+
+The DJI SDK ships its simulator slice for Intel only, and recent iOS simulators on Apple silicon cannot install it. Run on a physical iPhone.
+
+## Connecting a real drone
+
+Set `USE_MOCK_DRONE = false`, register an app at [DJI Developer](https://developer.dji.com/), put your key in the build settings, and connect the phone to the remote controller by USB. [docs/DJI_CONNECTION.md](docs/DJI_CONNECTION.md) has the full flow, supported models and troubleshooting.
+
+## Project structure
 
 ```
 SkyTools/
-├── SkyTools/                      # Main application code
-│   ├── SkyToolsApp.swift          # App entry point + DJI SDK registration
-│   ├── ContentView.swift          # Main TabView (4 tabs)
-│   ├── DashboardView.swift        # Live telemetry + KPI cards
-│   ├── FlightMapView.swift        # Interactive map with flight track
-│   ├── LogsView.swift             # Session history + export
-│   ├── SystemView.swift           # SDK status + settings
-│   ├── OnboardingView.swift       # First launch experience
-│   ├── SettingsView.swift         # App settings
-│   ├── DroneStore.swift           # Central state management (ObservableObject)
-│   ├── TelemetryLogger.swift      # Telemetry logging service
-│   ├── TelemetryRecord.swift      # Telemetry data model
-│   ├── FlightSummary.swift        # Flight analytics
-│   ├── SessionManager.swift       # Session persistence
-│   ├── ExportManager.swift        # CSV/GPX export
-│   ├── EventManager.swift         # Event markers management
-│   ├── AppSettings.swift          # Settings singleton
-│   └── MockDroneService.swift     # Mock drone for testing
-├── docs/                          # Documentation
-│   ├── DJI_CONNECTION.md          # DJI connection guide
-│   ├── LOCALIZATION.md            # Localization settings
-│   ├── PRIVACY.md                 # Privacy policy
-│   └── PROJECT_REPORT.md          # Project report
-├── screenshots/                   # App screenshots
-├── Pods/                          # CocoaPods dependencies
-├── README.md                      # Main documentation
-├── LICENSE                        # MIT License
-└── Podfile                        # CocoaPods configuration
+├── SkyTools/
+│   ├── SkyToolsApp.swift        # Entry point and DJI SDK registration
+│   ├── DroneStore.swift         # Central state, SDK delegates, fixed-rate logging
+│   ├── TelemetryLogger.swift    # Session records and summaries
+│   ├── SessionManager.swift     # Saving and loading sessions
+│   ├── ExportManager.swift      # CSV and GPX; JSON in LogsView
+│   ├── EventManager.swift       # Event markers
+│   ├── MockDroneService.swift   # Simulated flight
+│   └── *View.swift              # Dashboard, Map, Logs, System, Settings, Onboarding
+├── docs/                        # Connection guide, privacy, localisation, media
+├── Podfile                      # DJI-SDK-iOS 4.16
+└── LICENSE
 ```
 
-### Architecture Pattern
+## Limits
 
-**MVVM-like** with centralized state management:
+- The real-drone path is written against the DJI Mobile SDK, but everything shown here was recorded with the mock drone.
+- RC signal strength is shown for the mock drone only. With a real drone the field stays empty.
+- There is no automated test target. The mock drone is the way to exercise the app.
+- Telemetry is sampled at up to 5 Hz. A whole session is held in memory until it ends, which is fine for a flight but not for hours of logging.
 
-- **Model:** `TelemetryRecord`, `FlightEvent`, `FlightSummary`
-- **View:** SwiftUI views (`DashboardView`, `FlightMapView`, etc.)
-- **ViewModel:** `DroneStore` (single source of truth), `TelemetryLogger`, `EventManager`
+## What I learned
 
----
+- **Defaults that were never applied:** the settings declared automatic sessions and event markers as on, but read them back with `UserDefaults.bool(forKey:)`, which returns `false` for a key that was never saved. A fresh install logged nothing until I ran it and saw an empty log.
+- **Silent data loss:** the logger capped its buffer at 1,000 records for memory reasons, and the saved session was built from that same buffer, so any flight longer than a few minutes lost its start. I only saw it by flying a 4-minute mock session at 5 Hz and counting the saved records.
+- **One source of truth:** routing both the SDK and the mock through `DroneStore` meant every screen could be built and checked without a drone.
+- **Fixed-rate sampling:** the SDK calls back as often as it likes, so a timer that samples the latest state gives a log you can compare between flights.
+- **Third-party binaries:** a closed-source SDK decides which platforms you can run on, including the simulator.
 
-## 🚀 Getting Started
+## License
 
-### Prerequisites
-
-- Xcode 15.0+
-- iOS 15.0+ device or simulator
-- CocoaPods installed
-- DJI Developer Account (for real drone connection)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Bogdusik/SkyTools.git
-   cd SkyTools
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   pod install
-   ```
-
-3. **Open the workspace:**
-   ```bash
-   open SkyTools.xcworkspace
-   ```
-
-4. **Configure DJI SDK:**
-   - Register your app at [DJI Developer](https://developer.dji.com/)
-   - Add your App Key to `Info.plist` (if using real drone)
-   - Set `USE_MOCK_DRONE = false` in `SkyToolsApp.swift` for production
-
-5. **Build and run:**
-   - Select your target device
-   - Build (⌘+B) and Run (⌘+R)
-
----
-
-## 🔌 Connecting a Real DJI Drone
-
-### How It Works
-
-SkyTools connects to your DJI drone through the **DJI Mobile SDK**:
-
-1. **Physical Connection:**
-   - Connect your iPhone/iPad to the drone's remote controller via **USB cable**
-   - Or connect via **Wi-Fi** (for supported models like DJI Mini 3 Pro)
-
-2. **SDK Connection Flow:**
-   ```
-   App Launch → DJI SDK Registration → Product Detection → Telemetry Subscription
-   ```
-
-3. **Automatic Telemetry:**
-   - Once connected, SkyTools automatically subscribes to telemetry callbacks
-   - Data flows: `DJI SDK → DroneStore → TelemetryLogger → UI`
-   - No manual configuration needed
-
-### Supported Models
-
-- DJI Mini series (Mini 2, Mini 3, Mini 3 Pro, Mini 4 Pro)
-- DJI Mavic series (Mavic Air 2, Mavic 3, etc.)
-- Any DJI drone compatible with DJI Mobile SDK iOS
-
-### Connection Steps
-
-1. **Enable Mock Mode (for testing):**
-   - Set `USE_MOCK_DRONE = true` in `SkyToolsApp.swift`
-   - App will simulate drone telemetry without hardware
-
-2. **Use Real Drone:**
-   - Set `USE_MOCK_DRONE = false`
-   - Connect iPhone to remote controller via USB
-   - Launch SkyTools
-   - App will automatically detect and connect to the drone
-   - Check **System** tab for connection status
-
-3. **Start Flight Session:**
-   - Connection is automatic (if "Auto Start Session" is enabled in Settings)
-   - Or manually start from Dashboard
-   - Telemetry begins logging immediately
-
----
-
-## 📊 Features in Detail
-
-### 1. Real-time Telemetry Dashboard
-
-- **Live Metrics:** Battery, altitude, speed, heading, GPS satellites
-- **Signal Quality:** Visual indicators for GPS and RC signal strength
-- **KPI Cards:** Max altitude, max speed, flight distance, battery drop
-- **Flight Summary:** Duration, average speed, total distance
-
-### 2. Interactive Flight Map
-
-- **Flight Track:** Visual path of the entire flight
-- **Markers:**
-  - 🟢 **Start Point** - Where the flight began
-  - 🔴 **End Point** - Final position (for saved sessions)
-  - 🏠 **Home Point** - Takeoff location
-  - 📍 **Max Distance** - Furthest point from home
-  - 🎯 **Event Markers** - Custom markers (interesting shot, problem, wind)
-- **Interactive Controls:**
-  - Pan, zoom, rotate, pitch
-  - "Follow Drone" button to return to automatic tracking
-
-### 3. Event Markers
-
-- **Quick Actions:** Mark interesting shots, problems, wind conditions
-- **Custom Events:** Add notes and custom event types
-- **Context:** Events are saved with GPS coordinates and timestamps
-- **Visualization:** Displayed on map and in logs
-
-### 4. Session Management
-
-- **Automatic Sessions:** Start/end based on drone connection (configurable)
-- **Persistent Storage:** All sessions saved to `Documents/Sessions/`
-- **Session History:** Browse past flights with date/time
-- **Export Options:** JSON (full telemetry), CSV (tabular), GPX (route)
-
-### 5. Settings & Customization
-
-- **Logging Frequency:** 1 Hz / 2 Hz / 5 Hz
-- **Units:** Speed (m/s ↔ km/h), Altitude (m ↔ ft)
-- **Auto Session:** Enable/disable automatic session start/end
-- **Event Markers:** Toggle event marker functionality
-
----
-
-## 🧪 Testing with Mock Drone
-
-SkyTools includes a **Mock Drone Service** for development and testing:
-
-- **No Hardware Required:** Test all features without a physical drone
-- **Realistic Simulation:** Generates realistic telemetry data
-- **Full Feature Access:** All features work identically to real drone mode
-
-To enable:
-```swift
-let USE_MOCK_DRONE = true  // In SkyToolsApp.swift
-```
-
----
-
-## 🔒 Privacy & Security
-
-**SkyTools is privacy-first:**
-
-- ✅ **No User Location Tracking** - App does NOT access device GPS via `CLLocationManager`
-- ✅ **Drone Data Only** - Only reads drone position from DJI SDK
-- ✅ **Local Storage** - All data stored locally on device
-- ✅ **No Cloud Sync** - No automatic data transmission
-- ✅ **User-Controlled Export** - You decide when to share data
-
-See [PRIVACY.md](docs/PRIVACY.md) for full privacy policy.
-
----
-
-## 📁 Data Export Formats
-
-### JSON Export
-Complete telemetry log with all fields:
-```json
-{
-  "sessionId": "...",
-  "timestamp": "2026-01-08T10:30:00Z",
-  "battery": 85,
-  "altitude": 45.2,
-  "speed": 8.5,
-  "latitude": 55.8642,
-  "longitude": -4.2518,
-  ...
-}
-```
-
-### CSV Export
-Tabular format for spreadsheet analysis:
-```csv
-timestamp,battery,altitude,speed,latitude,longitude,heading
-2026-01-08 10:30:00,85,45.2,8.5,55.8642,-4.2518,180.5
-...
-```
-
-### GPX Export
-Flight route for Google Earth / QGIS:
-```xml
-<gpx>
-  <trk>
-    <trkseg>
-      <trkpt lat="55.8642" lon="-4.2518">
-        <ele>45.2</ele>
-        <time>2026-01-08T10:30:00Z</time>
-      </trkpt>
-      ...
-    </trkseg>
-  </trk>
-</gpx>
-```
-
----
-
-## 🛠️ Development
-
-### Project Setup
-
-1. **CocoaPods:**
-   ```bash
-   pod install
-   pod update
-   ```
-
-2. **Xcode Configuration:**
-   - Open `SkyTools.xcworkspace` (not `.xcodeproj`)
-   - Select your development team
-   - Configure signing & capabilities
-
-3. **DJI SDK:**
-   - Register at [DJI Developer](https://developer.dji.com/)
-   - Add App Key to `Info.plist` (for production)
-
-### Code Quality
-
-- **Architecture:** MVVM-like with centralized state
-- **Error Handling:** Comprehensive error states and user feedback
-- **Performance:** Fixed-rate logging (1/2/5 Hz), memory management (max 1000 records)
-- **Documentation:** Key components have inline comments
-
-### Testing
-
-- **Mock Mode:** Full feature testing without hardware
-- **Real Drone:** Field testing with actual DJI drone
-- **Edge Cases:** Empty states, disconnection handling, error recovery
-
----
-
-## 📸 Screenshots
-
-### Dashboard View
-<div align="center">
-  <img src="screenshots/dashboard.png" alt="Dashboard" width="300">
-  <p><em>Real-time telemetry, KPI cards, and flight summary</em></p>
-</div>
-
-### Flight Map
-<div align="center">
-  <img src="screenshots/map.png" alt="Flight Map" width="300">
-  <p><em>Interactive map with flight track, markers, and event points</em></p>
-</div>
-
-### Flight Logs
-<div align="center">
-  <img src="screenshots/logs.png" alt="Logs" width="300">
-  <p><em>Session history and export options (JSON, CSV, GPX)</em></p>
-</div>
-
-### System Status
-<div align="center">
-  <img src="screenshots/system.png" alt="System" width="300">
-  <p><em>DJI SDK connection status and settings</em></p>
-</div>
-
-### Settings
-<div align="center">
-  <img src="screenshots/settings.png" alt="Settings" width="300">
-  <p><em>Customizable logging frequency, units, and session management</em></p>
-</div>
-
----
-
-## 🤝 Contributing
-
-This is a portfolio project, but contributions are welcome:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **DJI** - For the Mobile SDK
-- **Apple** - For SwiftUI and iOS frameworks
-- **Open Source Community** - For inspiration and tools
-
----
-
-## 📧 Contact
-
-**Bohdan Bozhenko**
-
-- Portfolio: [GitHub](https://github.com/Bogdusik)
-- Email: [bogdyn13@proton.me](mailto:bogdyn13@proton.me)
-
----
-
-## 🎯 Project Status
-
-**SkyTools v1.1** - Production Ready ✅
-
-- ✅ All core features implemented
-- ✅ UI polished and user-friendly
-- ✅ Privacy-first architecture
-- ✅ Ready for real-world use
-- ✅ Portfolio-ready codebase
-
----
-
-<div align="center">
-
-**Built with ❤️ using Swift & SwiftUI**
-
-*For DJI drone pilots who want more control over their flight data*
-
-</div>
+[MIT](LICENSE)
