@@ -13,7 +13,7 @@ import Combine
 /// - Sessions are automatically saved when ended
 /// - Supports querying by session ID
 /// - Provides flight summary generation
-/// - Handles memory management (max 1000 records in memory)
+/// - Live buffer is capped at 1000 records; the saved session keeps every record
 ///
 /// PRIVACY: All data is stored locally on device. No data is transmitted to external servers.
 @MainActor
@@ -26,7 +26,10 @@ final class TelemetryLogger: ObservableObject {
     @Published private(set) var records: [TelemetryRecord] = []
     
     // Configuration
-    private let maxRecordsInMemory = 1000
+    /// Cap for the live buffer shown in the UI. Saved sessions are not capped.
+    let liveRecordLimit = 1000
+    private var currentSessionRecords: [TelemetryRecord] = []
+    private var currentSessionRecordsId: UUID?
     private(set) var sessionStartTime: Date?
     
     private init() {}
@@ -38,6 +41,8 @@ final class TelemetryLogger: ObservableObject {
         currentSessionId = sessionId
         sessionStartTime = Date()
         records.removeAll()
+        currentSessionRecords.removeAll()
+        currentSessionRecordsId = sessionId
         print("📊 TelemetryLogger: Started session \(sessionId.uuidString.prefix(8))")
         return sessionId
     }
@@ -91,17 +96,21 @@ final class TelemetryLogger: ObservableObject {
         }
         
         records.append(record)
+        currentSessionRecords.append(record)
         
-        // Keep only last maxRecordsInMemory
-        if records.count > maxRecordsInMemory {
-            records.removeFirst(records.count - maxRecordsInMemory)
+        // Keep only the last liveRecordLimit in the published buffer
+        if records.count > liveRecordLimit {
+            records.removeFirst(records.count - liveRecordLimit)
         }
     }
     
     // MARK: - Query
     
     func recordsForSession(_ sessionId: UUID) -> [TelemetryRecord] {
-        records.filter { $0.sessionId == sessionId }
+        if sessionId == currentSessionRecordsId {
+            return currentSessionRecords
+        }
+        return records.filter { $0.sessionId == sessionId }
     }
     
     func allSessions() -> [UUID] {

@@ -281,7 +281,7 @@ final class DroneStore: NSObject, ObservableObject {
     
     private func updateTelemetryLog() {
         if let sessionId = currentSessionId ?? logger.currentSessionId {
-            telemetryLog = logger.recordsForSession(sessionId)
+            telemetryLog = Array(logger.recordsForSession(sessionId).suffix(logger.liveRecordLimit))
         } else {
             telemetryLog = logger.records
         }
