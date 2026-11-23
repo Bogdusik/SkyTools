@@ -112,8 +112,12 @@ final class AppSettings: ObservableObject {
             altitudeUnit = alt
         }
         
-        autoStartSession = UserDefaults.standard.bool(forKey: "autoStartSession")
-        autoEndSession = UserDefaults.standard.bool(forKey: "autoEndSession")
-        eventMarkersEnabled = UserDefaults.standard.bool(forKey: "eventMarkersEnabled")
+        autoStartSession = Self.savedBool("autoStartSession", default: true)
+        autoEndSession = Self.savedBool("autoEndSession", default: true)
+        eventMarkersEnabled = Self.savedBool("eventMarkersEnabled", default: true)
+    }
+
+    private static func savedBool(_ key: String, default fallback: Bool) -> Bool {
+        UserDefaults.standard.object(forKey: key) as? Bool ?? fallback
     }
 }
